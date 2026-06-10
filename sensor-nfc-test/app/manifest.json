@@ -1,0 +1,18 @@
+{
+	"include": "$(MODDABLE)/examples/manifest_mod.json",
+	"modules": {
+		"*": "./app"
+	},
+	"platforms": {
+		"esp": {
+			"config": {
+				"rotation": 90
+			}
+		},
+		"esp32": {
+			"config": {
+				"rotation": 90
+			}
+		}
+	}
+}

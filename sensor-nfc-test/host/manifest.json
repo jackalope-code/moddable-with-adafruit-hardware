@@ -1,0 +1,64 @@
+{
+	"include": [
+		"$(MODDABLE)/examples/manifest_base.json",
+		"$(MODDABLE)/examples/manifest_piu.json",
+		"$(MODDABLE)/modules/drivers/peripherals/ds3231/manifest.json",
+		"$(MODDABLE)/modules/drivers/sensors/bmp390/manifest.json",
+		"$(MODDABLE)/modules/io/manifest.json",
+		"$(MODULES)/pins/i2s/manifest.json"
+	],
+	"creation": {
+		"stack": 512,
+		"keys": {
+			"initial": 128,
+			"incremental": 32
+		}
+	},
+	"defines": {
+		"XS_MODS": 1
+	},
+	"modules": {
+		"*": [
+			"./main",
+			"./bmp390_adafruit",
+			"./st25dv",
+			"$(MODULES)/base/modules/*"
+		]
+	},
+	"preload": [
+		"modules"
+	],
+	"resources": {
+		"*-alpha": [
+			"./fonts/OpenSans-Regular-10",
+			"./fonts/OpenSans-Regular-12",
+			"./fonts/OpenSans-Regular-14",
+			"./fonts/OpenSans-Regular-16",
+			"./fonts/OpenSans-Regular-18",
+			"./fonts/OpenSans-Regular-20",
+			"./fonts/OpenSans-Semibold-10",
+			"./fonts/OpenSans-Semibold-12",
+			"./fonts/OpenSans-Semibold-14",
+			"./fonts/OpenSans-Semibold-16",
+			"./fonts/OpenSans-Semibold-18",
+			"./fonts/OpenSans-Semibold-20"
+		]
+	},
+	"platforms": {
+		"esp": {
+			"config": {
+				"rotation": 90
+			}
+		},
+		"esp32": {
+			"config": {
+				"rotation": 90
+			}
+		}
+	},
+	"strip": [
+		"RegExp",
+		"Proxy",
+		"eval"
+	]
+}
