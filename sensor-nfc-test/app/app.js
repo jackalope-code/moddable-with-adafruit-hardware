@@ -82,9 +82,21 @@ class MainBehavior extends Behavior {
 		this.uri = "";
 		app.interval = 500;
 		app.start();
+
+		// Use BMP390 Adafruit bridge driver
+		this.bmp390 = hardwareBmp390;
+		this.bmp390Ok = hardwareBmp390Ok;
+
+		// Set BMP390 driver label
+		this.$.BMP_TITLE.string = "BMP390";
+		this.$.BMP_HINT.string = "Adafruit bridge";
+
+		// Update status
+		this.$.BMP_STATUS.string = this.bmp390Ok ? "\u25CF OK" : "\u25CF Not Found";
+		this.$.BMP_STATUS.style = this.bmp390Ok ? okStyle : errStyle;
 	}
 	onDisplaying(app) {
-		if (hardwareBmp390 && hardwareBmp390Ok) this.updateBMP390();
+		if (this.bmp390 && this.bmp390Ok) this.updateBMP390();
 		if (hardwareRtc && hardwareRtcOk) this.updateRTC();
 		if (hardwareSt25dv && hardwareSt25dvOk) this.updateST25DV();
 	}
@@ -92,13 +104,13 @@ class MainBehavior extends Behavior {
 		this.colon = !this.colon;
 		this.tick++;
 		if (hardwareRtc && hardwareRtcOk) this.updateRTC();
-		if (this.tick % 4 === 0 && hardwareBmp390 && hardwareBmp390Ok) this.updateBMP390();
+		if (this.tick % 4 === 0 && this.bmp390 && this.bmp390Ok) this.updateBMP390();
 	}
 	updateBMP390() {
-		if (!hardwareBmp390 || !hardwareBmp390Ok) return;
+		if (!this.bmp390 || !this.bmp390Ok) return;
 		try {
 			trace("BMP390 sampling...\n");
-			const s = hardwareBmp390.sample();
+			const s = this.bmp390.sample();
 			if (!s || !s.thermometer || !s.barometer) { trace("BMP390 sample missing fields\n"); return; }
 			this.tempC = s.thermometer.temperature;
 			this.pressure = s.barometer.pressure;
@@ -184,17 +196,17 @@ let SensorApplication = Application.template($ => ({
 			string: "Sensor & NFC Test"
 		}),
 
-		/* BMP390 Adafruit Bridge Card */
+		/* BMP390 Card */
 		Container($, {
 			anchor: "BMP_CARD",
 			top: 32, left: 6, right: 6, height: 82,
 			skin: cardSkin,
 			contents: [
-				Label($, { top: 4, left: 8, height: 14, style: headingStyle, string: "BMP390 Adafruit Bridge" }),
+				Label($, { anchor: "BMP_TITLE", top: 4, left: 8, height: 14, style: headingStyle, string: "BMP390" }),
 				Label($, { anchor: "BMP_STATUS", top: 4, right: 8, height: 14, style: hardwareBmp390Ok ? okStyle : errStyle, string: hardwareBmp390Ok ? "\u25CF OK" : "\u25CF Not Found" }),
 				Label($, { anchor: "BMP_TEMP", top: 22, left: 8, right: 8, height: 16, style: valueStyle, string: hardwareBmp390Ok ? "Reading..." : "--" }),
 				Label($, { anchor: "BMP_PRESS", top: 40, left: 8, right: 8, height: 16, style: valueStyle, string: hardwareBmp390Ok ? "Reading..." : "--" }),
-				Label($, { top: 60, left: 8, right: 8, height: 14, style: hintStyle, string: hardwareBmp390Ok ? "C++/C bridge test" : "Check wiring & address 0x77" })
+				Label($, { anchor: "BMP_HINT", top: 60, left: 8, right: 8, height: 14, style: hintStyle, string: hardwareBmp390Ok ? "Loading..." : "Check wiring & address 0x77" })
 			]
 		}),
 

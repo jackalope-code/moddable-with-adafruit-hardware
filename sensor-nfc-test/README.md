@@ -47,7 +47,59 @@ sensor-nfc-test/
     app.js           — Piu UI with three hardware cards
     manifest.json    — app mod manifest
   README.md
+  COPILOT.md        — Copilot AI assistant instructions
 ```
+
+## BMP390 Driver Implementation
+
+### Required Driver: Adafruit Bridge
+
+**This project requires the Adafruit C++/C bridge driver for BMP390.** Pure JavaScript drivers are not acceptable for this project due to the limitations described below.
+
+The Adafruit bridge driver is implemented in the Moddable SDK at:
+```
+moddable/modules/drivers/sensors/bmp390/
+```
+
+This bridge:
+- **Ported from Adafruit BMP3XX library** - Provides full Bosch BMP3 calibration and compensation algorithms
+- **Native performance** - C++ implementation for complex sensor calculations
+- **Complete feature set** - Includes all oversampling modes, IIR filter coefficients, and ODR settings
+
+### Why Pure JS is Not Acceptable
+
+Pure JavaScript drivers are limiting for complex sensors like the BMP390 because:
+
+- **Computational overhead** - Complex calibration algorithms (e.g., Bosch BMP3 compensation) are slow in JavaScript
+- **Limited precision** - JavaScript floating-point may not match sensor datasheet requirements
+- **Maintenance burden** - Porting vendor libraries to JS is error-prone and time-consuming
+- **Feature gaps** - Simplified implementations often omit advanced sensor features
+
+### Build System Requirement
+
+**CRITICAL:** The host must be built WITHOUT the `XS_MODS: 1` flag to allow native C/C++ sources from included manifests to compile. The BMP390 manifest includes the native C++ and C sources that must be linked.
+
+The host manifest must include:
+```json
+{
+  "include": [
+    "$(MODDABLE)/modules/drivers/sensors/bmp390/manifest.json"
+  ]
+}
+```
+
+And must NOT include:
+```json
+{
+  "defines": {
+    "XS_MODS": 1  // This prevents native C/C++ compilation
+  }
+}
+```
+
+### Current Status
+
+The build system limitation has been resolved by removing the `XS_MODS: 1` flag from the host manifest. The Adafruit bridge driver should now compile and link correctly.
 
 ## Build & Run
 

@@ -1,5 +1,6 @@
 {
 	"include": [
+		"$(MODDABLE)/examples/manifest_mod.json",
 		"$(MODDABLE)/examples/manifest_base.json",
 		"$(MODDABLE)/examples/manifest_piu.json",
 		"$(MODDABLE)/modules/drivers/peripherals/ds3231/manifest.json",
@@ -15,19 +16,15 @@
 		}
 	},
 	"defines": {
-		"XS_MODS": 1
+		"XS_MODS": 0
 	},
 	"modules": {
 		"*": [
 			"./main",
-			"./bmp390_adafruit",
 			"./st25dv",
 			"$(MODULES)/base/modules/*"
 		]
 	},
-	"preload": [
-		"modules"
-	],
 	"resources": {
 		"*-alpha": [
 			"./fonts/OpenSans-Regular-10",

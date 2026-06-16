@@ -22,7 +22,7 @@
 import {} from "piu/MC";
 import Timer from "timer";
 import RTC from "embedded:RTC/DS3231";
-import BMP390Adafruit from "./bmp390_adafruit";
+import BMP390Adafruit from "embedded:sensor/Barometer-Temperature/BMP390/Adafruit";
 import ST25DV16K from "./st25dv";
 import AudioOut from "pins/audioout";
 
@@ -55,8 +55,8 @@ let hardwareSt25dvID = 0;
 /* probe BMP390 Adafruit bridge */
 try {
 	hardwareBmp390 = new BMP390Adafruit({ sensor: device.I2C.default });
-	hardwareBmp390Ok = true;
 	trace("BMP390 Adafruit bridge connected\n");
+	hardwareBmp390Ok = true;
 } catch (e) {
 	trace(`BMP390 Adafruit bridge not found: ${e.message}\n`);
 	if (hardwareBmp390) { hardwareBmp390.close(); hardwareBmp390 = null; }
@@ -127,7 +127,6 @@ export default function () {
 			Application, Behavior, Container, Column, Label, Row, Skin, Style,
 			Timer, AudioOut,
 			hardwareBmp390, hardwareBmp390Ok,
-			hardwareBmp280Adafruit, hardwareBmp280AdafruitOk,
 			hardwareRtc, hardwareRtcOk,
 			hardwareSt25dv, hardwareSt25dvOk, hardwareSt25dvID,
 		};

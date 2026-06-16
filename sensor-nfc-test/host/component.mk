@@ -1,0 +1,3 @@
+COMPONENT_SRCDIRS := .
+COMPONENT_SRCS := bmp390_adafruit_c.c bmp390_adafruit.cpp
+COMPONENT_ADD_INCLUDEDIRS := .
