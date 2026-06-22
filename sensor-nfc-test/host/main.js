@@ -53,13 +53,17 @@ let hardwareSt25dvOk = false;
 let hardwareSt25dvID = 0;
 
 /* probe BMP390 Adafruit bridge */
+trace("Probing BMP390 Adafruit bridge...\n");
 try {
-	hardwareBmp390 = new BMP390Adafruit({ sensor: device.I2C.default });
-	trace("BMP390 Adafruit bridge connected\n");
+	// Constructor initializes the sensor (begin) and throws if not found.
+	hardwareBmp390 = new BMP390Adafruit({
+		sensor: device.I2C.default
+	});
 	hardwareBmp390Ok = true;
+	trace("BMP390 connected\n");
 } catch (e) {
-	trace(`BMP390 Adafruit bridge not found: ${e.message}\n`);
-	if (hardwareBmp390) { hardwareBmp390.close(); hardwareBmp390 = null; }
+	trace(`BMP390 error: ${e.message}\n`);
+	if (hardwareBmp390) { hardwareBmp390.close?.(); hardwareBmp390 = null; }
 }
 
 Timer.delay(100);

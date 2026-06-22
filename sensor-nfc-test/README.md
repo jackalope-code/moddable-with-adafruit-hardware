@@ -41,30 +41,68 @@ sensor-nfc-test/
   host/
     main.js          — probes hardware, loads app mod in Compartment
     manifest.json    — host manifest (includes Piu, DS3231, fonts)
-    bmp390.js        — BMP390 pure-JS I2C driver
-    st25dv.js        — ST25DV16K pure-JS I2C driver
   app/
     app.js           — Piu UI with three hardware cards
     manifest.json    — app mod manifest
   README.md
-  COPILOT.md        — Copilot AI assistant instructions
+  COPILOT.md        — Copilot AI assistant instructions for adding hardware
 ```
 
 ## BMP390 Driver Implementation
 
-### Required Driver: Adafruit Bridge
+### Status: IN PROGRESS (NOT YET FUNCTIONAL)
 
-**This project requires the Adafruit C++/C bridge driver for BMP390.** Pure JavaScript drivers are not acceptable for this project due to the limitations described below.
+**This project is implementing the Adafruit C++/C bridge driver for BMP390.** The integration is currently incomplete and the driver is not yet functional. This section documents the current state and challenges encountered.
 
-The Adafruit bridge driver is implemented in the Moddable SDK at:
-```
-moddable/modules/drivers/sensors/bmp390/
-```
+### Architecture
 
-This bridge:
-- **Ported from Adafruit BMP3XX library** - Provides full Bosch BMP3 calibration and compensation algorithms
-- **Native performance** - C++ implementation for complex sensor calculations
-- **Complete feature set** - Includes all oversampling modes, IIR filter coefficients, and ODR settings
+The BMP390 driver is implemented in three layers:
+
+1. **C++ Bridge** (`bmp390_adafruit.cpp`) - Ported from Adafruit BMP3XX library
+   - Implements Bosch BMP3 calibration and compensation algorithms
+   - Provides register read/write helpers and sensor initialization
+   - Uses I2C callbacks to communicate with hardware
+
+2. **C Binding** (`bmp390_adafruit_c.c`) - XS JavaScript integration
+   - Implements native XS methods: `constructor`, `begin`, `readTemperature`, `readPressure`, `readAltitude`
+   - Manages instance lifecycle and I2C communication
+   - Currently uses JavaScript I2C callbacks (see challenges below)
+
+3. **JavaScript Module** (`bmp390_adafruit.js`) - High-level driver interface
+   - Wraps native C binding with error handling
+   - Provides `sample()`, `readTemperature()`, `readPressure()`, `readAltitude()` methods
+
+### Known Challenges & Lessons Learned
+
+#### 1. I2C Communication Deadlock
+**Problem:** Initial implementation used synchronous calls from native C++ callbacks into JavaScript I2C methods. This caused the host to hang during BMP390 initialization.
+
+**Root Cause:** The Moddable XS engine is not thread-safe for synchronous JavaScript calls from native callbacks. When the BMP390 C++ library calls the I2C write/read callbacks, which then call JavaScript I2C methods, the engine deadlocks.
+
+**Attempted Solutions:**
+- Wrapping callbacks with `xsTry`/`xsCatch` - did not prevent deadlock
+- Retaining JavaScript I2C object references with `xsRemember` - did not prevent deadlock
+- Using native ESP32 I2C driver (see below) - compilation succeeded but caused host crash
+
+**Current Status:** Reverted to JavaScript I2C callbacks but driver is not yet tested. Need to verify if the callbacks work without blocking.
+
+#### 2. Native I2C Driver Integration
+**Problem:** Attempted to create a native ESP32 I2C driver (`esp32_i2c_native.c`) to avoid JavaScript callbacks. This caused the host to crash during startup with no output.
+
+**Root Cause:** Likely due to I2C bus initialization conflict. The Moddable I2C module may already be managing the I2C bus, and creating a separate native I2C bus handle caused a conflict.
+
+**Lesson Learned:** Do not create separate I2C bus handles in native code. Always use the JavaScript I2C object that's already initialized by the Moddable SDK.
+
+#### 3. Build System Limitations
+**Problem:** The Moddable build system does NOT automatically compile native C/C++ sources listed in manifest `sources` arrays, even when those manifests are included.
+
+**Root Cause:** The build system processes JavaScript modules and generates XS bytecode, but doesn't add native sources from included manifests to the CMakeLists.txt.
+
+**Workaround:** Inline native code directly into the C binding file (`bmp390_adafruit_c.c`) so it gets compiled as part of the main component.
+
+**Lesson Learned:** For native drivers in the Moddable SDK, either:
+- Inline all native code into the C binding file, OR
+- Manually add native sources to the host manifest's `sources` array (if the build system supports it)
 
 ### Why Pure JS is Not Acceptable
 
@@ -75,11 +113,9 @@ Pure JavaScript drivers are limiting for complex sensors like the BMP390 because
 - **Maintenance burden** - Porting vendor libraries to JS is error-prone and time-consuming
 - **Feature gaps** - Simplified implementations often omit advanced sensor features
 
-### Build System Requirement
+### Build Configuration
 
-**CRITICAL:** The host must be built WITHOUT the `XS_MODS: 1` flag to allow native C/C++ sources from included manifests to compile. The BMP390 manifest includes the native C++ and C sources that must be linked.
-
-The host manifest must include:
+The host manifest includes the BMP390 driver:
 ```json
 {
   "include": [
@@ -88,18 +124,7 @@ The host manifest must include:
 }
 ```
 
-And must NOT include:
-```json
-{
-  "defines": {
-    "XS_MODS": 1  // This prevents native C/C++ compilation
-  }
-}
-```
-
-### Current Status
-
-The build system limitation has been resolved by removing the `XS_MODS: 1` flag from the host manifest. The Adafruit bridge driver should now compile and link correctly.
+The host does NOT use `XS_MODS: 1` to allow native compilation.
 
 ## Build & Run
 
@@ -159,10 +184,21 @@ These come from a previous build (e.g. `iot-remote`) still resident on the devic
 mcconfig -d -m -p esp32/moddable_six -t clean
 ```
 
-### BMP390 shows "Not Found"
+### BMP390 shows "Not Found" or Host Crashes
 
-- Check the SDO pin on the BMP390 breakout. If tied to GND, the address is `0x76`. Edit `bmp390.js` or add `address: 0x76` to the constructor options in `host/main.js`.
-- Verify Qwiic cable is seated firmly.
+**BMP390 driver is currently DISABLED for debugging.** The driver integration is incomplete and causes host crashes.
+
+**Current Issues:**
+- Host crashes silently during startup when BMP390 driver is enabled
+- I2C communication between native C++ code and JavaScript I2C object causes deadlock/crash
+- Need to resolve the synchronous callback issue before driver can be tested
+
+**To re-enable BMP390 testing:**
+1. Uncomment the BMP390 probe code in `host/main.js` (lines 55-68)
+2. Rebuild and test with serial monitor to see crash details
+3. Debug the I2C callback mechanism
+
+**See "Known Challenges & Lessons Learned" section above for details on the issues encountered.**
 
 ### RTC shows "Not Found"
 
@@ -173,3 +209,11 @@ mcconfig -d -m -p esp32/moddable_six -t clean
 
 - The ST25DV16K has two I2C addresses: `0x53` (user memory) and `0x57` (system). Both must respond.
 - Try power-cycling the breakout if it was previously in a busy state.
+
+## Adding Future Hardware
+
+See **COPILOT.md** for detailed instructions on:
+- When to use native C/C++ drivers vs. pure JavaScript
+- How to integrate native drivers into the build system
+- CMakeLists.txt configuration for ESP32
+- Macro compatibility checks
