@@ -758,6 +758,62 @@ BMP390: reading raw_t 8631232 raw_p 9063688 -> temp(mC) 24548 press(Pa) 80697
 
 **Reality:** `XS_MODS: 1` enables mod loading. Native driver compilation is unaffected - it compiles into the host archive via the driver manifest regardless of `XS_MODS` setting.
 
+## Case Study: ST25DV NFC Tag Capability Container (CC) Fix
+
+### Problem
+The ST25DV16K NFC tag driver was writing NDEF data to memory offset `0x0000`, which worked for I2C reads but prevented phones from scanning the tag via RF. The phone would not recognize the tag as a valid NFC Forum Type 5 device.
+
+### Root Cause
+NFC Forum Type 5 tags require a **Capability Container (CC)** at memory offset 0. The CC contains:
+- Magic byte: `0xE1` (1-byte addressing) or `0xE2` (extended addressing)
+- Mapping version and access rights
+- NDEF memory length (MLEN)
+
+The driver was overwriting the CC with the NDEF TLV at offset 0. Our own I2C read worked because it read from the same wrong offset (self-consistent), but phones read the CC first to determine if the tag contains NDEF data. With no valid CC, the phone ignored the tag.
+
+### Solution
+Added `st25dv_get_ndef_offset()` to the native C++ driver (`st25dv_stm32duino.cpp`):
+
+```cpp
+static uint16_t st25dv_get_ndef_offset(st25dv_handle_t handle) {
+	uint8_t cc[8];
+	if (!st25dv_read_memory(handle, 0x0000, cc, 8)) return 0;
+	
+	// Valid Type 5 CC magic numbers: 0xE1 (1-byte) / 0xE2 (extended)
+	if (cc[0] == 0xE1 || cc[0] == 0xE2) {
+		// 4-byte CC when MLEN field (cc[2]) is non-zero; 8-byte CC otherwise
+		return (cc[2] != 0) ? 4 : 8;
+	}
+	
+	// No valid CC found - write a default 4-byte CC
+	uint8_t default_cc[4] = { 0xE1, 0x40, 0x40, 0x00 };
+	if (!st25dv_write_memory(handle, 0x0000, default_cc, 4)) return 0;
+	return 4;
+}
+```
+
+Updated `st25dv_write_ndef_uri()` and `st25dv_read_ndef_uri()` to:
+1. Call `st25dv_get_ndef_offset()` to determine the NDEF start address (offset 4 or 8)
+2. Write/read NDEF TLV at that offset, *after* the CC
+
+### Verification
+After the fix, the memory dump showed:
+```
+e1 40 40 00            <- Capability Container (CC) at offset 0
+03 28                  <- NDEF Message TLV: type 0x03, length 0x28 (40 bytes)
+d1 01 24 55            <- NDEF record: header 0xD1, type-len 1, payload-len 0x24, type 'U' (URI)
+02                     <- URI prefix code 0x02 = "https://www."
+67 6f 6f 67 6c 65 ...  <- "google.com/search?q=..."
+```
+
+The phone successfully scanned the tag and opened the URL.
+
+### Lessons Learned
+1. **Protocol-specific metadata matters** — NFC Forum Type 5 requires a CC at offset 0; I2C-only testing missed this RF requirement.
+2. **Self-consistent I2C reads don't guarantee RF compatibility** — Our read worked because it read from the same wrong offset; phones have different expectations.
+3. **Preserve factory metadata** — When porting drivers, ensure protocol-specific structures (CC, headers, etc.) are preserved, not overwritten.
+4. **Debug with memory dumps** — Adding a hex dump after writes revealed the actual memory layout, which was critical for diagnosis.
+
 ## Additional Resources
 
 - **Moddable SDK Documentation:** https://github.com/Moddable-OpenSource/moddable

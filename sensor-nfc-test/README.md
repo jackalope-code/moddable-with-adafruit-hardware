@@ -2,6 +2,8 @@
 
 Combined test app for three Adafruit breakouts on the Moddable Six Qwiic/Stemma QT bus.
 
+**GitHub:** https://github.com/jackalope-code/moddable-with-adafruit-hardware
+
 ## Prerequisites
 
 - **ESP-IDF activated shell:** You must build this project from an ESP-IDF activated shell (ESP-IDF 6.0+ recommended, 6.0.1 tested and working). The Moddable build system requires ESP-IDF environment variables to be set. Do not use regular PowerShell or CMD.
@@ -120,6 +122,13 @@ Pure JavaScript drivers are limiting for complex sensors like the BMP390 because
 
 ## Build & Run
 
+Clone the repository and build:
+
+```sh
+git clone https://github.com/jackalope-code/moddable-with-adafruit-hardware.git
+cd moddable-with-adafruit-hardware/hardware-demo/sensor-nfc-test
+```
+
 **Build the host first (with mod support), then the app mod.** The host owns the mod partition, so it must be flashed before installing a mod.
 
 ### 1. Build the host
@@ -156,7 +165,7 @@ This compiles `app.js` into an XS mod archive and installs it on the device over
 - **BMP390 card** — temp, pressure, status
 - **RTC card** — HH:MM:SS with blinking colon, date, status
 - **ST25DV16K card** — chip ID, current NDEF URI, write button
-- Cards use the dark navy / slate theme borrowed from `iot-remote`.
+- Cards use the dark navy / slate theme borrowed from [iot-remote](https://github.com/jackalope-code/iot-remote-and-dashboard).
 
 ## Troubleshooting
 

@@ -16,8 +16,10 @@ class ST25DV16K {
 			this.#sensor = new ST25DVSTM32duino({
 				sensor: options.sensor
 			});
+			this.#sensor.begin();
 			this.#ready = true;
-			trace("ST25DV STM32duino bridge initialized\n");
+			const chipID = this.#sensor.getChipID();
+			trace(`ST25DV STM32duino bridge initialized (chip ID: 0x${chipID.toString(16)})\n`);
 		} catch (e) {
 			trace(`ST25DV STM32duino bridge error: ${e.message}\n`);
 			if (this.#sensor) {
@@ -44,7 +46,7 @@ class ST25DV16K {
 	isPresent() {
 		try {
 			const id = this.readChipID();
-			return [0x24, 0x26, 0x50, 0x52].includes(id);
+			return [0x24, 0x26, 0x50, 0x51].includes(id);
 		} catch (e) {
 			return false;
 		}

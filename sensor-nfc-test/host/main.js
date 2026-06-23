@@ -128,7 +128,7 @@ export default function () {
 
 	if (archive) {
 		const globals = {
-			Application, Behavior, Container, Column, Label, Row, Skin, Style,
+			Application, Behavior, Container, Column, Label, Row, Skin, Style, Scroller,
 			Timer, AudioOut,
 			hardwareBmp390, hardwareBmp390Ok,
 			hardwareRtc, hardwareRtcOk,

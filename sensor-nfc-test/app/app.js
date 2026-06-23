@@ -158,13 +158,53 @@ class MainBehavior extends Behavior {
 	}
 }
 
-class WriteButtonBehavior extends Behavior {
+// Global scrolling state
+let isScrolling = false;
+
+// Custom scroll behavior for Scroller
+class SimpleScrollBehavior extends Behavior {
+	onCreate(scroller) {
+		this.dx = 0;
+		this.dy = 0;
+	}
+	onTouchBegan(scroller, id, x, y) {
+		this.startX = x;
+		this.startY = y;
+		isScrolling = false;
+	}
+	onTouchMoved(scroller, id, x, y) {
+		this.dx = this.startX - x;
+		this.dy = this.startY - y;
+		if (Math.abs(this.dy) > 5) {
+			isScrolling = true;
+		}
+		scroller.scrollBy(this.dx, this.dy);
+		this.startX = x;
+		this.startY = y;
+	}
+	onTouchEnded(scroller, id, x, y) {
+		isScrolling = false;
+	}
+}
+
+// Base button behavior - checks scrolling state
+class BaseButtonBehavior extends Behavior {
 	onTouchBegan(l, id, x, y, ticks) {
+		if (isScrolling) return;
 		trace("button touch began\n");
 		l.state = 1;
 		playTap();
 	}
 	onTouchEnded(l, id, x, y, ticks) {
+		if (isScrolling) return;
+		trace("button touch ended\n");
+		l.state = 0;
+	}
+}
+
+class WriteButtonBehavior extends BaseButtonBehavior {
+	onTouchEnded(l, id, x, y, ticks) {
+		if (isScrolling) return;
 		trace("button touch ended\n");
 		l.state = 0;
 		if (!hardwareSt25dvOk) {
@@ -183,25 +223,6 @@ class WriteButtonBehavior extends Behavior {
 	}
 }
 
-// Simple scroll behavior for Scroller
-class SimpleScrollBehavior extends Behavior {
-	onCreate(scroller) {
-		this.dx = 0;
-		this.dy = 0;
-	}
-	onTouchBegan(scroller, id, x, y) {
-		this.startX = x;
-		this.startY = y;
-	}
-	onTouchMoved(scroller, id, x, y) {
-		this.dx = this.startX - x;
-		this.dy = this.startY - y;
-		scroller.scrollBy(this.dx, this.dy);
-		this.startX = x;
-		this.startY = y;
-	}
-}
-
 let SensorApplication = Application.template($ => ({
 	skin: bgSkin,
 	Behavior: MainBehavior,
@@ -217,6 +238,9 @@ let SensorApplication = Application.template($ => ({
 
 		Scroller($, {
 			top: 32, left: 0, right: 0, bottom: 16,
+			active: true,
+			clip: true,
+			backgroundTouch: true,
 			Behavior: SimpleScrollBehavior,
 			contents: [
 				Column($, {
