@@ -5,6 +5,7 @@
 		"$(MODDABLE)/examples/manifest_piu.json",
 		"$(MODDABLE)/modules/drivers/sensors/bmp390/manifest.json",
 		"$(MODDABLE)/modules/drivers/peripherals/ds3231/manifest.json",
+		"$(MODDABLE)/modules/drivers/nfc/st25dv/manifest.json",
 		"$(MODDABLE)/modules/io/manifest.json",
 		"$(MODULES)/pins/i2c/manifest.json",
 		"$(MODULES)/pins/i2s/manifest.json"

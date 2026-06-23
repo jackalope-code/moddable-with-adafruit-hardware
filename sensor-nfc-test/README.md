@@ -2,6 +2,11 @@
 
 Combined test app for three Adafruit breakouts on the Moddable Six Qwiic/Stemma QT bus.
 
+## Prerequisites
+
+- **ESP-IDF activated shell:** You must build this project from an ESP-IDF activated shell (ESP-IDF 6.0+ recommended, 6.0.1 tested and working). The Moddable build system requires ESP-IDF environment variables to be set. Do not use regular PowerShell or CMD.
+- **Moddable SDK:** Installed and configured per Moddable documentation.
+
 ## Hardware
 
 | Component | Details |
@@ -120,7 +125,7 @@ Pure JavaScript drivers are limiting for complex sensors like the BMP390 because
 ### 1. Build the host
 
 ```sh
-cd /path/to/hardware-demo/sensor-nfc-test/host
+cd host
 mcconfig -d -m -p esp32/moddable_six
 ```
 
@@ -131,7 +136,7 @@ The host probes all three hardware devices at boot, then loads the app mod in a 
 ### 2. Build the app mod
 
 ```sh
-cd /path/to/hardware-demo/sensor-nfc-test/app
+cd app
 mcrun -d -m -p esp32/moddable_six
 ```
 

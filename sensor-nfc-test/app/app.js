@@ -173,13 +173,32 @@ class WriteButtonBehavior extends Behavior {
 		}
 		try {
 			trace("ST25DV writing URI...\n");
-			hardwareSt25dv.writeNDEF_URI("https://www.google.com/search?q=st25dv16");
+			hardwareSt25dv.writeNDEFURI("https://www.google.com/search?q=adafruit+st25dv");
 			trace("ST25DV write complete\n");
 			const app = l.application;
-			if (app?.$?.NFC_URI) app.$.NFC_URI.string = "https://www.google.com/search?q=st25dv16";
+			if (app?.$?.NFC_URI) app.$.NFC_URI.string = "https://www.google.com/search?q=adafruit+st25dv";
 		} catch (e) {
 			trace(`ST25DV write error: ${e}\n`);
 		}
+	}
+}
+
+// Simple scroll behavior for Scroller
+class SimpleScrollBehavior extends Behavior {
+	onCreate(scroller) {
+		this.dx = 0;
+		this.dy = 0;
+	}
+	onTouchBegan(scroller, id, x, y) {
+		this.startX = x;
+		this.startY = y;
+	}
+	onTouchMoved(scroller, id, x, y) {
+		this.dx = this.startX - x;
+		this.dy = this.startY - y;
+		scroller.scrollBy(this.dx, this.dy);
+		this.startX = x;
+		this.startY = y;
 	}
 }
 
@@ -196,56 +215,67 @@ let SensorApplication = Application.template($ => ({
 			string: "Sensor & NFC Test"
 		}),
 
-		/* BMP390 Card */
-		Container($, {
-			anchor: "BMP_CARD",
-			top: 32, left: 6, right: 6, height: 82,
-			skin: cardSkin,
+		Scroller($, {
+			top: 32, left: 0, right: 0, bottom: 16,
+			Behavior: SimpleScrollBehavior,
 			contents: [
-				Label($, { anchor: "BMP_TITLE", top: 4, left: 8, height: 14, style: headingStyle, string: "BMP390" }),
-				Label($, { anchor: "BMP_STATUS", top: 4, right: 8, height: 14, style: hardwareBmp390Ok ? okStyle : errStyle, string: hardwareBmp390Ok ? "\u25CF OK" : "\u25CF Not Found" }),
-				Label($, { anchor: "BMP_TEMP", top: 22, left: 8, right: 8, height: 16, style: valueStyle, string: hardwareBmp390Ok ? "Reading..." : "--" }),
-				Label($, { anchor: "BMP_PRESS", top: 40, left: 8, right: 8, height: 16, style: valueStyle, string: hardwareBmp390Ok ? "Reading..." : "--" }),
-				Label($, { anchor: "BMP_HINT", top: 60, left: 8, right: 8, height: 14, style: hintStyle, string: hardwareBmp390Ok ? "Loading..." : "Check wiring & address 0x77" })
-			]
-		}),
+				Column($, {
+					left: 6, right: 6, top: 0,
+					contents: [
+						/* BMP390 Card */
+						Container($, {
+							anchor: "BMP_CARD",
+							top: 0, left: 0, right: 0, height: 82,
+							skin: cardSkin,
+							contents: [
+								Label($, { anchor: "BMP_TITLE", top: 4, left: 8, height: 14, style: headingStyle, string: "BMP390" }),
+								Label($, { anchor: "BMP_STATUS", top: 4, right: 8, height: 14, style: hardwareBmp390Ok ? okStyle : errStyle, string: hardwareBmp390Ok ? "\u25CF OK" : "\u25CF Not Found" }),
+								Label($, { anchor: "BMP_TEMP", top: 22, left: 8, right: 8, height: 16, style: valueStyle, string: hardwareBmp390Ok ? "Reading..." : "--" }),
+								Label($, { anchor: "BMP_PRESS", top: 40, left: 8, right: 8, height: 16, style: valueStyle, string: hardwareBmp390Ok ? "Reading..." : "--" }),
+								Label($, { anchor: "BMP_HINT", top: 60, left: 8, right: 8, height: 14, style: hintStyle, string: hardwareBmp390Ok ? "Loading..." : "Check wiring & address 0x77" })
+							]
+						}),
 
-		/* RTC Card */
-		Container($, {
-			anchor: "RTC_CARD",
-			top: 118, left: 6, right: 6, height: 78,
-			skin: cardSkin,
-			contents: [
-				Label($, { top: 4, left: 8, height: 14, style: headingStyle, string: "ChronoDot 3.0" }),
-				Label($, { anchor: "RTC_STATUS", top: 4, right: 8, height: 14, style: hardwareRtcOk ? okStyle : errStyle, string: hardwareRtcOk ? "\u25CF OK" : "\u25CF Not Found" }),
-				Label($, { anchor: "RTC_TIME", top: 22, left: 8, right: 8, height: 24, style: timeStyle, string: hardwareRtcOk ? "--:--:--" : "--" }),
-				Label($, { anchor: "RTC_DATE", top: 48, left: 8, right: 8, height: 16, style: valueStyle, string: hardwareRtcOk ? "Reading..." : "Check wiring & address 0x68" })
-			]
-		}),
+						/* RTC Card */
+						Container($, {
+							anchor: "RTC_CARD",
+							top: 10, left: 0, right: 0, height: 78,
+							skin: cardSkin,
+							contents: [
+								Label($, { top: 4, left: 8, height: 14, style: headingStyle, string: "ChronoDot 3.0" }),
+								Label($, { anchor: "RTC_STATUS", top: 4, right: 8, height: 14, style: hardwareRtcOk ? okStyle : errStyle, string: hardwareRtcOk ? "\u25CF OK" : "\u25CF Not Found" }),
+								Label($, { anchor: "RTC_TIME", top: 22, left: 8, right: 8, height: 24, style: timeStyle, string: hardwareRtcOk ? "--:--:--" : "--" }),
+								Label($, { anchor: "RTC_DATE", top: 48, left: 8, right: 8, height: 16, style: valueStyle, string: hardwareRtcOk ? "Reading..." : "Check wiring & address 0x68" })
+							]
+						}),
 
-		/* ST25DV16K Card */
-		Container($, {
-			anchor: "NFC_CARD",
-			top: 200, left: 6, right: 6, height: 104,
-			skin: cardSkin,
-			contents: [
-				Label($, { top: 4, left: 8, width: 110, height: 14, style: headingStyle, string: "Adafruit ST25DV16K" }),
-				Label($, {
-					top: 3, left: 120, width: 56, height: 16,
-					style: new Style({ font: "semibold 10px Open Sans", color: "#f1f5f9", horizontal: "center", vertical: "middle" }),
-					skin: buttonSkin,
-					active: hardwareSt25dvOk,
-					string: "Test Write",
-					Behavior: WriteButtonBehavior
-				}),
-				Label($, { anchor: "NFC_STATUS", top: 4, right: 8, width: 60, height: 14, style: hardwareSt25dvOk ? okStyle : errStyle, string: hardwareSt25dvOk ? "\u25CF OK" : "\u25CF Not Found" }),
-				Label($, { top: 22, left: 8, right: 8, height: 12, style: hintStyle, string: hardwareSt25dvOk ? `Chip ID: 0x${hardwareSt25dvID.toString(16).toUpperCase().padStart(2,"0")}` : "Check wiring & addresses 0x53/0x57" }),
-				Label($, { anchor: "NFC_URI", top: 36, left: 8, right: 8, height: 14, style: valueStyle, string: "(empty)" }),
-				Label($, {
-					bottom: 4, left: 8, right: 8, height: 12,
-					style: hintStyle,
-					horizontal: "center",
-					string: "Tap Test Write to program NFC tag"
+						/* ST25DV16K Card */
+						Container($, {
+							anchor: "NFC_CARD",
+							top: 10, left: 0, right: 0, height: 104,
+							skin: cardSkin,
+							contents: [
+								Label($, { top: 4, left: 8, width: 110, height: 14, style: headingStyle, string: "Adafruit ST25DV16K" }),
+								Label($, {
+									top: 3, left: 120, width: 56, height: 16,
+									style: new Style({ font: "semibold 10px Open Sans", color: "#f1f5f9", horizontal: "center", vertical: "middle" }),
+									skin: buttonSkin,
+									active: hardwareSt25dvOk,
+									string: "Test Write",
+									Behavior: WriteButtonBehavior
+								}),
+								Label($, { anchor: "NFC_STATUS", top: 4, right: 8, width: 60, height: 14, style: hardwareSt25dvOk ? okStyle : errStyle, string: hardwareSt25dvOk ? "\u25CF OK" : "\u25CF Not Found" }),
+								Label($, { top: 22, left: 8, right: 8, height: 12, style: hintStyle, string: hardwareSt25dvOk ? `Chip ID: 0x${hardwareSt25dvID.toString(16).toUpperCase().padStart(2,"0")}` : "Check wiring & addresses 0x53/0x57" }),
+								Label($, { anchor: "NFC_URI", top: 36, left: 8, right: 8, height: 14, style: valueStyle, string: "(empty)" }),
+								Label($, {
+									bottom: 4, left: 8, right: 8, height: 12,
+									style: hintStyle,
+									horizontal: "center",
+									string: "Tap Test Write to program NFC tag"
+								})
+							]
+						}),
+					]
 				})
 			]
 		}),
