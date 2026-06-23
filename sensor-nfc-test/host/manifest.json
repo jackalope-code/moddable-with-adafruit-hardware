@@ -17,7 +17,7 @@
 		}
 	},
 	"defines": {
-		"XS_MODS": 0
+		"XS_MODS": 1
 	},
 	"modules": {
 		"*": [

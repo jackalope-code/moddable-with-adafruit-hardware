@@ -29,11 +29,11 @@ The host passes hardware references as globals to the app mod. This allows the a
 - Devices where vendor libraries are unavailable
 - Prototyping and testing
 
-### BMP390 Driver - INTEGRATION IN PROGRESS (NOT YET FUNCTIONAL)
+### BMP390 Driver - VERIFIED WORKING (Jun 22 2026)
 
-**This project is implementing the Adafruit C++/C bridge driver for BMP390.** The integration is currently incomplete and the driver is not yet functional.
+**The Adafruit C++/C bridge driver for BMP390 is fully functional on real hardware.** The driver integrates with Moddable XS via a project-local manifest and uses native ESP32 I2C (modI2C) for sensor communication. Runtime trace confirms: chip id 0x60, begin OK (initialized), "BMP390 connected". Sensor readings are displayed on the UI with reasonable values (~24.6°C, ~807 hPa).
 
-The Adafruit bridge driver is being implemented in the Moddable SDK at:
+The Adafruit bridge driver is implemented in the Moddable SDK at:
 ```
 moddable/modules/drivers/sensors/bmp390/
 ```
@@ -42,33 +42,47 @@ This bridge includes:
 - Full Bosch BMP3 calibration and compensation algorithms (ported from Adafruit BMP3XX library)
 - Native C++ implementation for performance
 - Complete feature set (oversampling modes, IIR filter coefficients, ODR settings)
+- Native ESP32 I2C (modI2C) integration for reliable hardware communication
 
-### Known Integration Challenges
+### Key Integration Lessons
 
-#### 1. I2C Synchronous Callback Deadlock
-**Problem:** Synchronous calls from native C++ callbacks into JavaScript I2C methods cause the host to hang or crash.
+#### 1. Use Moddable's Native I2C API (modI2C)
+**Correct approach:** The BMP390 driver uses Moddable's C I2C API (`modI2C.c`, `modI2C.h`) for all hardware communication. This avoids synchronous native-to-JS callbacks that can deadlock the XS engine.
 
-**Root Cause:** The Moddable XS engine is not thread-safe for synchronous JavaScript calls from native callbacks. The BMP390 C++ library calls I2C write/read callbacks, which then call JavaScript I2C methods, causing a deadlock.
+**Implementation:**
+- C++ bridge includes `modI2C.h` wrapped in `extern "C"` to prevent C++ name-mangling
+- `modI2CInit`, `modI2CWrite`, `modI2CRead` are synchronous C functions that use the ESP32's `esp_driver_i2c`
+- The driver does NOT create separate I2C bus handles; it coordinates with Moddable's I2C module via the weak `i2cActivate` symbol
 
-**Attempted Solutions:**
-- Wrapping callbacks with `xsTry`/`xsCatch` - did not prevent deadlock
-- Retaining JavaScript I2C object references with `xsRemember` - did not prevent deadlock
-- Creating a native ESP32 I2C driver to avoid JavaScript callbacks - caused host crash due to I2C bus initialization conflict
+**Lesson:** Always use Moddable's native C APIs (e.g., modI2C) from native code. Do not create separate hardware handles that conflict with the SDK's management.
 
-**Lesson Learned:** Do not create separate I2C bus handles in native code. Always use the JavaScript I2C object that's already initialized by the Moddable SDK.
+#### 2. Project-Local Manifest-Driven Native Compilation
+**Correct approach:** Native sources are declared in the driver manifest's `modules` map. Moddable compiles them into the prebuilt archive (`xs_<subclass>.a`) with the full Moddable include path. This is project-local and does not affect other projects.
 
-**Current Status:** Driver is disabled pending resolution of the I2C callback issue.
+**Driver manifest example:**
+```json
+{
+  "include": ["$(MODDABLE)/modules/pins/i2c/manifest.json"],
+  "modules": {
+    "embedded:sensor/Barometer-Temperature/BMP390/Adafruit": ".../bmp390_adafruit",
+    "bmp390/binding": ".../bmp390_adafruit_c"
+  }
+}
+```
 
-#### 2. Build System Limitations
-**Problem:** The Moddable build system does NOT automatically compile native C/C++ sources listed in manifest `sources` arrays, even when those manifests are included.
+**Lesson:** DO NOT edit the global SDK template `build/devices/esp32/xsProj-<subclass>/main/CMakeLists.txt` to add app sources. That file is copied verbatim to every project of that subclass and would break other esp32s3 projects.
 
-**Root Cause:** The build system processes JavaScript modules and generates XS bytecode, but doesn't add native sources from included manifests to the CMakeLists.txt.
+#### 3. extern "C" Guards for C++/C Interop
+**Problem:** C++ code including Moddable C headers (e.g., `modI2C.h`) without `extern "C"` causes name-mangling, leading to undefined references to C symbols.
 
-**Workaround:** Inline native code directly into the C binding file (`bmp390_adafruit_c.c`) so it gets compiled as part of the main component.
+**Fix:** Wrap the include in the C++ file:
+```cpp
+extern "C" {
+	#include "modI2C.h"
+}
+```
 
-**Lesson Learned:** For native drivers in the Moddable SDK, either:
-- Inline all native code into the C binding file, OR
-- Manually add native sources to the host manifest's `sources` array (if the build system supports it)
+**Lesson:** Always wrap Moddable C header includes in `extern "C"` when compiling C++ code that calls C functions.
 
 ### Why Pure JS is Not Acceptable for BMP390
 
@@ -79,7 +93,7 @@ This bridge includes:
 
 ### Build System Integration for Native Drivers
 
-**CRITICAL:** The host must be built WITHOUT the `XS_MODS: 1` flag to allow native C/C++ sources from included manifests to compile.
+**Correct approach:** The host manifest includes the driver manifest and sets `XS_MODS: 1` to enable mod loading. Native driver compilation is unaffected by `XS_MODS` — it compiles into the host archive via the driver manifest's `modules` map.
 
 #### Host Manifest Configuration
 
@@ -92,22 +106,21 @@ The host manifest MUST include the native driver's manifest:
 }
 ```
 
-And must NOT include:
+For mod-based applications (host + app mod), the host manifest MUST set:
 ```json
 {
   "defines": {
-    "XS_MODS": 1  // This prevents native C/C++ compilation
+    "XS_MODS": 1  // Enables mod loading; does NOT prevent native compilation
   }
 }
 ```
 
-#### Inlining Native Code
+#### Build Order
 
-Due to build system limitations, native code should be inlined directly into the C binding file rather than kept in separate files. This ensures the code is compiled as part of the main component.
+1. Build the host first (with `XS_MODS: 1`): `mcconfig -d -m -p esp32/moddable_six`
+2. Build/install the app mod: `mcrun -d -m -p esp32/moddable_six`
 
-**File:** `moddable/modules/drivers/sensors/bmp390/bmp390_adafruit_c.c`
-
-Include all native implementation code directly in this file. The C++ bridge (`bmp390_adafruit.cpp`) can remain separate since it's compiled by the build system.
+The host owns the mod partition, so it must be flashed before installing a mod.
 
 ### Macro Compatibility
 
@@ -133,28 +146,32 @@ If compilation fails with macro errors, check the macro definition in `moddable/
 
 ### DON'Ts
 - **NEVER** suggest pure JS implementations for complex sensors
-- **NEVER** add `XS_MODS: 1` to the host manifest
+- **NEVER** edit the global SDK template `build/devices/esp32/xsProj-<subclass>/main/CMakeLists.txt` to add app sources
 - **NEVER** create separate I2C bus handles in native code
 - **NEVER** make synchronous calls from native callbacks into JavaScript
-- **NEVER** assume the Moddable build system will automatically compile native sources from included manifests
+- **NEVER** include Moddable C headers in C++ without `extern "C"` guards
+- **NEVER** assume `XS_MODS: 1` prevents native compilation (it does not)
 
 ### Critical Lessons from BMP390 Integration
-1. **Avoid synchronous JS callbacks from native code** - The XS engine is not thread-safe for this pattern. It causes deadlocks and crashes.
-2. **Don't create separate hardware handles** - Always use the JavaScript objects that Moddable SDK has already initialized.
-3. **Inline native code when needed** - The build system has limitations; inlining ensures compilation.
-4. **Test early with serial output** - Silent crashes are hard to debug. Add trace statements and use a serial monitor.
+1. **Use Moddable's native C APIs** - The modI2C API provides synchronous C I2C without JS reentrancy issues.
+2. **Project-local manifest-driven compilation** - Declare native sources in the driver manifest's `modules` map; do not touch global SDK templates.
+3. **extern "C" for C++/C interop** - Wrap Moddable C header includes in `extern "C"` to prevent name-mangling.
+4. **Build order matters** - Flash the host first (it owns the mod partition), then install the app mod.
+5. **XS_MODS enables mods, not disables native code** - Native code compiles into the host archive regardless of `XS_MODS`.
 
 ## Build Instructions
 
-Always build the app mod first, then the host:
+Build the host first (with mod support), then the app mod:
 
 ```sh
-cd app
-mcrun -d -m -p esp32/moddable_six
-
-cd ../host
+cd host
 mcconfig -d -m -p esp32/moddable_six
+
+cd ../app
+mcrun -d -m -p esp32/moddable_six
 ```
+
+If mod install fails with `resultCode -8`, the host still has `XS_MODS: 0` from a previous build. Rebuild the host first.
 
 ## Hardware
 
