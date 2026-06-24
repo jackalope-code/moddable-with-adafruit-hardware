@@ -30,7 +30,7 @@ All three devices share the same I2C bus. Daisy-chain the Qwiic/Stemma QT connec
 | SDA | GPIO4 |
 | SCL | GPIO5 |
 
-**ChronoDot 3.0 note:** It uses 0.1" headers (not Qwiic). Connect with jumper wires to the 16-pin external header (pins 1–4) and **add 4.7 kΩ pull-up resistors** (SDA→3.3V, SCL→3.3V) because the ChronoDot does not ship with pull-ups installed. See `chronodot-clock/README.md` for details.
+**ChronoDot 3.0 note:** It uses 0.1" headers (not Qwiic). Connect with jumper wires to the 16-pin external header (pins 1–4) or use a Qwiic-to-breadboard adapter cable. The ChronoDot 3.0 includes I2C pull-up resistors installed, so no external resistors are needed. See `chronodot-clock/README.md` for details.
 
 ### I2C Addresses
 
