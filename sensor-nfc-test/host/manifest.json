@@ -8,7 +8,8 @@
 		"$(MODDABLE)/modules/drivers/nfc/st25dv/manifest.json",
 		"$(MODDABLE)/modules/io/manifest.json",
 		"$(MODULES)/pins/i2c/manifest.json",
-		"$(MODULES)/pins/i2s/manifest.json"
+		"$(MODULES)/pins/i2s/manifest.json",
+		"$(MODDABLE)/modules/input/expanding-keyboard/horizontal/manifest.json"
 	],
 	"creation": {
 		"stack": 512,

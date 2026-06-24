@@ -25,6 +25,8 @@ import RTC from "embedded:RTC/DS3231";
 import BMP390Adafruit from "embedded:sensor/Barometer-Temperature/BMP390/Adafruit";
 import ST25DV16K from "./st25dv";
 import AudioOut from "pins/audioout";
+import {HorizontalExpandingKeyboard} from "keyboard";
+import {KeyboardField} from "common/keyboard";
 
 /* ---- helper: probe I2C address safely (zero-byte write, no throw on NACK) ---- */
 function i2cProbe(address) {
@@ -130,6 +132,7 @@ export default function () {
 		const globals = {
 			Application, Behavior, Container, Column, Label, Row, Skin, Style, Scroller,
 			Timer, AudioOut,
+			HorizontalExpandingKeyboard, KeyboardField,
 			hardwareBmp390, hardwareBmp390Ok,
 			hardwareRtc, hardwareRtcOk,
 			hardwareSt25dv, hardwareSt25dvOk, hardwareSt25dvID,

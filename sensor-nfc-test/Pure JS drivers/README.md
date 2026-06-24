@@ -7,6 +7,15 @@ This folder contains pure JavaScript implementations of drivers for demonstratio
 ### time.js
 Arduino Time library ported to Moddable SDK. Provides Arduino-compatible time functions using JavaScript's Date object as the underlying time source.
 
+**Note:** This driver is currently not integrated into the sensor-nfc-test app. The app uses Moddable SDK's built-in `embedded:RTC/DS3231` driver instead.
+
+**To integrate the Time library:**
+1. Import the Time library functions in `app/app.js`
+2. Replace `hardwareRtc.time` usage with `now()` from the Time library
+3. Use `setTime()` to set the time from the ChronoDot or user input
+4. Optionally implement a sync provider using `setSyncProvider()` to periodically sync with the ChronoDot
+5. Replace Date object usage with Time library functions (`hour()`, `minute()`, etc.)
+
 **Features:**
 - Arduino-compatible API (`hour()`, `minute()`, `second()`, `day()`, `month()`, `year()`, `weekday()`)
 - Time sync provider pattern (`setSyncProvider()`, `setSyncInterval()`)
