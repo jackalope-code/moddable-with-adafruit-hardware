@@ -603,25 +603,53 @@ function hideAllCursors(data) {
 	for (let a of FIELD_ANCHORS) hideFieldCursor(data[a]);
 }
 
+// HorizontalExpandingKeyboard toggle modes: 0=lowercase, 1=SHIFT, 2=ALT (digits + symbols)
+const KEYBOARD_NUMERIC_MODE = 2;
+
+// Transparent overlay above the keyboard; tapping it dismisses the keyboard
+class KeyboardScrimBehavior extends Behavior {
+	onTouchEnded(scrim) {
+		const sb = scrim.application.first?.behavior;
+		if (sb) dismissKeyboard(sb);
+	}
+}
+
+function dismissKeyboard(sb) {
+	if (sb.data.KEYBOARD) sb.data.KEYBOARD.empty();
+	if (sb.scrim) {
+		if (sb.scrim.container) sb.scrim.container.remove(sb.scrim);
+		sb.scrim = null;
+	}
+	hideAllCursors(sb.data);
+	sb.activeField = null;
+}
+
 // Field tap behavior (on the white wrapper container) to show keyboard targeting the contained field
 class FieldTapBehavior extends Behavior {
 	onTouchBegan(wrapper) {}
 	onTouchEnded(wrapper) {
 		const field = wrapper.first;
-		const sb = wrapper.application.first?.behavior;
+		const screen = wrapper.application.first;
+		const sb = screen?.behavior;
 		if (!sb || !field) return;
 		sb.activeField = field;
 		hideAllCursors(sb.data);
 		showFieldCursor(field);
 		if (sb.data.KEYBOARD) {
 			sb.data.KEYBOARD.empty();
-			sb.data.KEYBOARD.add(HorizontalExpandingKeyboard(sb.data, {
+			const kbd = HorizontalExpandingKeyboard(sb.data, {
 				style: fieldStyle,
 				target: field,
 				doTransition: true,
-				toggleMode: 2
-			}));
+			});
+			// Rows read keyboard.toggleMode on display, so set numeric mode before adding
+			kbd.behavior.toggleMode = KEYBOARD_NUMERIC_MODE;
+			sb.data.KEYBOARD.add(kbd);
 		}
+		// Add a transparent scrim above the keyboard so tapping outside dismisses it
+		if (sb.scrim && sb.scrim.container) sb.scrim.container.remove(sb.scrim);
+		sb.scrim = new Container(null, { top: 0, left: 0, right: 0, bottom: 160, active: true, Behavior: KeyboardScrimBehavior });
+		screen.add(sb.scrim);
 	}
 }
 
@@ -759,9 +787,7 @@ class SetDateScreenBehavior extends Behavior {
 				}
 			}
 		}
-		if (this.data.KEYBOARD) this.data.KEYBOARD.empty();
-		hideAllCursors(this.data);
-		this.activeField = null;
+		dismissKeyboard(this);
 	}
 	onKeyboardTransitionFinished(container, out) {
 		if (out && this.data.KEYBOARD) this.data.KEYBOARD.empty();
@@ -815,9 +841,7 @@ class SetTimeScreenBehavior extends Behavior {
 				}
 			}
 		}
-		if (this.data.KEYBOARD) this.data.KEYBOARD.empty();
-		hideAllCursors(this.data);
-		this.activeField = null;
+		dismissKeyboard(this);
 	}
 	onKeyboardTransitionFinished(container, out) {
 		if (out && this.data.KEYBOARD) this.data.KEYBOARD.empty();
@@ -1020,7 +1044,7 @@ let SetDateScreen = Container.template($ => ({
 		}),
 		Container($, {
 			anchor: "KEYBOARD",
-			left: 0, right: 0, height: 160,
+			left: 0, right: 0, bottom: 0, height: 160,
 		})
 	]
 }));
@@ -1115,7 +1139,7 @@ let SetTimeScreen = Container.template($ => ({
 		}),
 		Container($, {
 			anchor: "KEYBOARD",
-			left: 0, right: 0, height: 160,
+			left: 0, right: 0, bottom: 0, height: 160,
 		})
 	]
 }));
