@@ -251,7 +251,11 @@ class BackButtonBehavior extends Behavior {
 	}
 	onTouchEnded(label) {
 		label.state = 0;
-		label.application.distribute("onNavigateToMain");
+		const app = label.application;
+		const appBehavior = app.behavior;
+		if (appBehavior && appBehavior.onNavigateToMain) {
+			appBehavior.onNavigateToMain(app);
+		}
 	}
 }
 
@@ -262,7 +266,11 @@ class BackToSetDateButtonBehavior extends Behavior {
 	}
 	onTouchEnded(label) {
 		label.state = 0;
-		label.application.distribute("onNavigateToSetDate");
+		const app = label.application;
+		const appBehavior = app.behavior;
+		if (appBehavior && appBehavior.onNavigateToSetDate) {
+			appBehavior.onNavigateToSetDate(app);
+		}
 	}
 }
 
@@ -274,14 +282,12 @@ class NextButtonBehavior extends Behavior {
 	onTouchEnded(label) {
 		label.state = 0;
 		const app = label.application;
-		const screen = app.first;
-		const screenBehavior = screen?.Behavior;
-		// First call screen behavior to store values
-		if (screenBehavior && screenBehavior.onNavigateToSetTime) {
-			screenBehavior.onNavigateToSetTime(screen);
+		const sb = app.first?.behavior;
+		const appBeh = app.behavior;
+		if (sb && appBeh) {
+			appBeh.dateValues = { month: sb.month, day: sb.day, year: sb.year };
+			appBeh.onNavigateToSetTime(app);
 		}
-		// Then trigger navigation via distribute
-		app.distribute("onNavigateToSetTime");
 	}
 }
 
@@ -292,7 +298,13 @@ class SaveButtonBehavior extends Behavior {
 	}
 	onTouchEnded(label) {
 		label.state = 0;
-		label.application.distribute("onSaveDateTime");
+		const app = label.application;
+		const sb = app.first?.behavior;
+		const appBeh = app.behavior;
+		if (sb && appBeh) {
+			appBeh.timeValues = { hour: sb.hour, minute: sb.minute, second: sb.second, isPM: sb.isPM };
+			appBeh.onSaveDateTime(app);
+		}
 	}
 }
 
@@ -306,13 +318,14 @@ class MonthIncButtonBehavior extends Behavior {
 		label.state = 0;
 		const app = label.application;
 		const screen = app.first;
-		const screenBehavior = screen?.Behavior;
-		if (screenBehavior && screenBehavior.month !== undefined) {
-			screenBehavior.month++;
-			if (screenBehavior.month > 12) screenBehavior.month = 1;
-			if (screen.$ && screen.$.MONTH_FIELD) {
-				screen.$.MONTH_FIELD.behavior.string = String(screenBehavior.month).padStart(2, "0");
-				screen.$.MONTH_FIELD.behavior.onKeyUp(screen.$.MONTH_FIELD, "");
+		const screenBehavior = screen?.behavior;
+		const sb = screenBehavior;
+		if (sb && sb.month !== undefined) {
+			sb.month++;
+			if (sb.month > 12) sb.month = 1;
+			if (sb.data?.MONTH_FIELD) {
+				sb.data.MONTH_FIELD.behavior.string = String(sb.month).padStart(2, "0");
+				sb.data.MONTH_FIELD.delegate("onKeyUp", "");
 			}
 		}
 	}
@@ -327,13 +340,14 @@ class MonthDecButtonBehavior extends Behavior {
 		label.state = 0;
 		const app = label.application;
 		const screen = app.first;
-		const screenBehavior = screen?.Behavior;
-		if (screenBehavior && screenBehavior.month !== undefined) {
-			screenBehavior.month--;
-			if (screenBehavior.month < 1) screenBehavior.month = 12;
-			if (screen.$ && screen.$.MONTH_FIELD) {
-				screen.$.MONTH_FIELD.behavior.string = String(screenBehavior.month).padStart(2, "0");
-				screen.$.MONTH_FIELD.behavior.onKeyUp(screen.$.MONTH_FIELD, "");
+		const screenBehavior = screen?.behavior;
+		const sb = screenBehavior;
+		if (sb && sb.month !== undefined) {
+			sb.month--;
+			if (sb.month < 1) sb.month = 12;
+			if (sb.data?.MONTH_FIELD) {
+				sb.data.MONTH_FIELD.behavior.string = String(sb.month).padStart(2, "0");
+				sb.data.MONTH_FIELD.delegate("onKeyUp", "");
 			}
 		}
 	}
@@ -348,13 +362,14 @@ class DayIncButtonBehavior extends Behavior {
 		label.state = 0;
 		const app = label.application;
 		const screen = app.first;
-		const screenBehavior = screen?.Behavior;
-		if (screenBehavior && screenBehavior.day !== undefined) {
-			screenBehavior.day++;
-			if (screenBehavior.day > 31) screenBehavior.day = 1;
-			if (screen.$ && screen.$.DAY_FIELD) {
-				screen.$.DAY_FIELD.behavior.string = String(screenBehavior.day).padStart(2, "0");
-				screen.$.DAY_FIELD.behavior.onKeyUp(screen.$.DAY_FIELD, "");
+		const screenBehavior = screen?.behavior;
+		const sb = screenBehavior;
+		if (sb && sb.day !== undefined) {
+			sb.day++;
+			if (sb.day > 31) sb.day = 1;
+			if (sb.data?.DAY_FIELD) {
+				sb.data.DAY_FIELD.behavior.string = String(sb.day).padStart(2, "0");
+				sb.data.DAY_FIELD.delegate("onKeyUp", "");
 			}
 		}
 	}
@@ -369,13 +384,14 @@ class DayDecButtonBehavior extends Behavior {
 		label.state = 0;
 		const app = label.application;
 		const screen = app.first;
-		const screenBehavior = screen?.Behavior;
-		if (screenBehavior && screenBehavior.day !== undefined) {
-			screenBehavior.day--;
-			if (screenBehavior.day < 1) screenBehavior.day = 31;
-			if (screen.$ && screen.$.DAY_FIELD) {
-				screen.$.DAY_FIELD.behavior.string = String(screenBehavior.day).padStart(2, "0");
-				screen.$.DAY_FIELD.behavior.onKeyUp(screen.$.DAY_FIELD, "");
+		const screenBehavior = screen?.behavior;
+		const sb = screenBehavior;
+		if (sb && sb.day !== undefined) {
+			sb.day--;
+			if (sb.day < 1) sb.day = 31;
+			if (sb.data?.DAY_FIELD) {
+				sb.data.DAY_FIELD.behavior.string = String(sb.day).padStart(2, "0");
+				sb.data.DAY_FIELD.delegate("onKeyUp", "");
 			}
 		}
 	}
@@ -390,13 +406,14 @@ class YearIncButtonBehavior extends Behavior {
 		label.state = 0;
 		const app = label.application;
 		const screen = app.first;
-		const screenBehavior = screen?.Behavior;
-		if (screenBehavior && screenBehavior.year !== undefined) {
-			screenBehavior.year++;
-			if (screenBehavior.year > 2099) screenBehavior.year = 2000;
-			if (screen.$ && screen.$.YEAR_FIELD) {
-				screen.$.YEAR_FIELD.behavior.string = String(screenBehavior.year).padStart(4, "0");
-				screen.$.YEAR_FIELD.behavior.onKeyUp(screen.$.YEAR_FIELD, "");
+		const screenBehavior = screen?.behavior;
+		const sb = screenBehavior;
+		if (sb && sb.year !== undefined) {
+			sb.year++;
+			if (sb.year > 2099) sb.year = 2000;
+			if (sb.data?.YEAR_FIELD) {
+				sb.data.YEAR_FIELD.behavior.string = String(sb.year).padStart(4, "0");
+				sb.data.YEAR_FIELD.delegate("onKeyUp", "");
 			}
 		}
 	}
@@ -411,13 +428,14 @@ class YearDecButtonBehavior extends Behavior {
 		label.state = 0;
 		const app = label.application;
 		const screen = app.first;
-		const screenBehavior = screen?.Behavior;
-		if (screenBehavior && screenBehavior.year !== undefined) {
-			screenBehavior.year--;
-			if (screenBehavior.year < 2000) screenBehavior.year = 2099;
-			if (screen.$ && screen.$.YEAR_FIELD) {
-				screen.$.YEAR_FIELD.behavior.string = String(screenBehavior.year).padStart(4, "0");
-				screen.$.YEAR_FIELD.behavior.onKeyUp(screen.$.YEAR_FIELD, "");
+		const screenBehavior = screen?.behavior;
+		const sb = screenBehavior;
+		if (sb && sb.year !== undefined) {
+			sb.year--;
+			if (sb.year < 2000) sb.year = 2099;
+			if (sb.data?.YEAR_FIELD) {
+				sb.data.YEAR_FIELD.behavior.string = String(sb.year).padStart(4, "0");
+				sb.data.YEAR_FIELD.delegate("onKeyUp", "");
 			}
 		}
 	}
@@ -433,13 +451,14 @@ class HourIncButtonBehavior extends Behavior {
 		label.state = 0;
 		const app = label.application;
 		const screen = app.first;
-		const screenBehavior = screen?.Behavior;
-		if (screenBehavior && screenBehavior.hour !== undefined) {
-			screenBehavior.hour++;
-			if (screenBehavior.hour > 12) screenBehavior.hour = 1;
-			if (screen.$ && screen.$.HOUR_FIELD) {
-				screen.$.HOUR_FIELD.behavior.string = String(screenBehavior.hour).padStart(2, "0");
-				screen.$.HOUR_FIELD.behavior.onKeyUp(screen.$.HOUR_FIELD, "");
+		const screenBehavior = screen?.behavior;
+		const sb = screenBehavior;
+		if (sb && sb.hour !== undefined) {
+			sb.hour++;
+			if (sb.hour > 12) sb.hour = 1;
+			if (sb.data?.HOUR_FIELD) {
+				sb.data.HOUR_FIELD.behavior.string = String(sb.hour).padStart(2, "0");
+				sb.data.HOUR_FIELD.delegate("onKeyUp", "");
 			}
 		}
 	}
@@ -454,13 +473,14 @@ class HourDecButtonBehavior extends Behavior {
 		label.state = 0;
 		const app = label.application;
 		const screen = app.first;
-		const screenBehavior = screen?.Behavior;
-		if (screenBehavior && screenBehavior.hour !== undefined) {
-			screenBehavior.hour--;
-			if (screenBehavior.hour < 1) screenBehavior.hour = 12;
-			if (screen.$ && screen.$.HOUR_FIELD) {
-				screen.$.HOUR_FIELD.behavior.string = String(screenBehavior.hour).padStart(2, "0");
-				screen.$.HOUR_FIELD.behavior.onKeyUp(screen.$.HOUR_FIELD, "");
+		const screenBehavior = screen?.behavior;
+		const sb = screenBehavior;
+		if (sb && sb.hour !== undefined) {
+			sb.hour--;
+			if (sb.hour < 1) sb.hour = 12;
+			if (sb.data?.HOUR_FIELD) {
+				sb.data.HOUR_FIELD.behavior.string = String(sb.hour).padStart(2, "0");
+				sb.data.HOUR_FIELD.delegate("onKeyUp", "");
 			}
 		}
 	}
@@ -475,13 +495,14 @@ class MinuteIncButtonBehavior extends Behavior {
 		label.state = 0;
 		const app = label.application;
 		const screen = app.first;
-		const screenBehavior = screen?.Behavior;
-		if (screenBehavior && screenBehavior.minute !== undefined) {
-			screenBehavior.minute++;
-			if (screenBehavior.minute > 59) screenBehavior.minute = 0;
-			if (screen.$ && screen.$.MINUTE_FIELD) {
-				screen.$.MINUTE_FIELD.behavior.string = String(screenBehavior.minute).padStart(2, "0");
-				screen.$.MINUTE_FIELD.behavior.onKeyUp(screen.$.MINUTE_FIELD, "");
+		const screenBehavior = screen?.behavior;
+		const sb = screenBehavior;
+		if (sb && sb.minute !== undefined) {
+			sb.minute++;
+			if (sb.minute > 59) sb.minute = 0;
+			if (sb.data?.MINUTE_FIELD) {
+				sb.data.MINUTE_FIELD.behavior.string = String(sb.minute).padStart(2, "0");
+				sb.data.MINUTE_FIELD.delegate("onKeyUp", "");
 			}
 		}
 	}
@@ -496,13 +517,14 @@ class MinuteDecButtonBehavior extends Behavior {
 		label.state = 0;
 		const app = label.application;
 		const screen = app.first;
-		const screenBehavior = screen?.Behavior;
-		if (screenBehavior && screenBehavior.minute !== undefined) {
-			screenBehavior.minute--;
-			if (screenBehavior.minute < 0) screenBehavior.minute = 59;
-			if (screen.$ && screen.$.MINUTE_FIELD) {
-				screen.$.MINUTE_FIELD.behavior.string = String(screenBehavior.minute).padStart(2, "0");
-				screen.$.MINUTE_FIELD.behavior.onKeyUp(screen.$.MINUTE_FIELD, "");
+		const screenBehavior = screen?.behavior;
+		const sb = screenBehavior;
+		if (sb && sb.minute !== undefined) {
+			sb.minute--;
+			if (sb.minute < 0) sb.minute = 59;
+			if (sb.data?.MINUTE_FIELD) {
+				sb.data.MINUTE_FIELD.behavior.string = String(sb.minute).padStart(2, "0");
+				sb.data.MINUTE_FIELD.delegate("onKeyUp", "");
 			}
 		}
 	}
@@ -517,13 +539,14 @@ class SecondIncButtonBehavior extends Behavior {
 		label.state = 0;
 		const app = label.application;
 		const screen = app.first;
-		const screenBehavior = screen?.Behavior;
-		if (screenBehavior && screenBehavior.second !== undefined) {
-			screenBehavior.second++;
-			if (screenBehavior.second > 59) screenBehavior.second = 0;
-			if (screen.$ && screen.$.SECOND_FIELD) {
-				screen.$.SECOND_FIELD.behavior.string = String(screenBehavior.second).padStart(2, "0");
-				screen.$.SECOND_FIELD.behavior.onKeyUp(screen.$.SECOND_FIELD, "");
+		const screenBehavior = screen?.behavior;
+		const sb = screenBehavior;
+		if (sb && sb.second !== undefined) {
+			sb.second++;
+			if (sb.second > 59) sb.second = 0;
+			if (sb.data?.SECOND_FIELD) {
+				sb.data.SECOND_FIELD.behavior.string = String(sb.second).padStart(2, "0");
+				sb.data.SECOND_FIELD.delegate("onKeyUp", "");
 			}
 		}
 	}
@@ -538,13 +561,14 @@ class SecondDecButtonBehavior extends Behavior {
 		label.state = 0;
 		const app = label.application;
 		const screen = app.first;
-		const screenBehavior = screen?.Behavior;
-		if (screenBehavior && screenBehavior.second !== undefined) {
-			screenBehavior.second--;
-			if (screenBehavior.second < 0) screenBehavior.second = 59;
-			if (screen.$ && screen.$.SECOND_FIELD) {
-				screen.$.SECOND_FIELD.behavior.string = String(screenBehavior.second).padStart(2, "0");
-				screen.$.SECOND_FIELD.behavior.onKeyUp(screen.$.SECOND_FIELD, "");
+		const screenBehavior = screen?.behavior;
+		const sb = screenBehavior;
+		if (sb && sb.second !== undefined) {
+			sb.second--;
+			if (sb.second < 0) sb.second = 59;
+			if (sb.data?.SECOND_FIELD) {
+				sb.data.SECOND_FIELD.behavior.string = String(sb.second).padStart(2, "0");
+				sb.data.SECOND_FIELD.delegate("onKeyUp", "");
 			}
 		}
 	}
@@ -557,15 +581,46 @@ class AMPMToggleButtonBehavior extends Behavior {
 	}
 	onTouchEnded(label) {
 		label.state = 0;
-		const app = label.application;
-		const screen = app.first;
-		const screenBehavior = screen?.Behavior;
-		if (screenBehavior && screenBehavior.isPM !== undefined) {
-			screenBehavior.isPM = !screenBehavior.isPM;
-			label.string = screenBehavior.isPM ? "PM" : "AM";
-			if (screen.$ && screen.$.AMPM_LABEL) {
-				screen.$.AMPM_LABEL.string = screenBehavior.isPM ? "PM" : "AM";
-			}
+		const sb = label.application.first?.behavior;
+		if (sb && sb.isPM !== undefined) {
+			sb.isPM = !sb.isPM;
+			const str = sb.isPM ? "PM" : "AM";
+			label.string = str;
+			if (sb.data?.AMPM_LABEL) sb.data.AMPM_LABEL.string = str;
+		}
+	}
+}
+
+// KeyboardField cursor (last child) blinks via its own timer; manage it per-field
+const FIELD_ANCHORS = ["MONTH_FIELD", "DAY_FIELD", "YEAR_FIELD", "HOUR_FIELD", "MINUTE_FIELD", "SECOND_FIELD"];
+function hideFieldCursor(field) {
+	if (field && field.last) { field.last.stop(); field.last.visible = false; }
+}
+function showFieldCursor(field) {
+	if (field && field.last) { field.last.visible = true; field.last.start(); }
+}
+function hideAllCursors(data) {
+	for (let a of FIELD_ANCHORS) hideFieldCursor(data[a]);
+}
+
+// Field tap behavior (on the white wrapper container) to show keyboard targeting the contained field
+class FieldTapBehavior extends Behavior {
+	onTouchBegan(wrapper) {}
+	onTouchEnded(wrapper) {
+		const field = wrapper.first;
+		const sb = wrapper.application.first?.behavior;
+		if (!sb || !field) return;
+		sb.activeField = field;
+		hideAllCursors(sb.data);
+		showFieldCursor(field);
+		if (sb.data.KEYBOARD) {
+			sb.data.KEYBOARD.empty();
+			sb.data.KEYBOARD.add(HorizontalExpandingKeyboard(sb.data, {
+				style: fieldStyle,
+				target: field,
+				doTransition: true,
+				toggleMode: 2
+			}));
 		}
 	}
 }
@@ -580,6 +635,17 @@ class ApplicationBehavior extends Behavior {
 
 	onNavigateToSetDate(application) {
 		trace("Navigating to Set Date screen\n");
+		if (hardwareRtc && hardwareRtcOk) {
+			try {
+				const ms = hardwareRtc.time;
+				const d = new Date(ms);
+				const yr = d.getUTCFullYear();
+				const hr = d.getUTCHours();
+				this.dateValues = { month: d.getUTCMonth() + 1, day: d.getUTCDate(), year: yr < 2000 ? 2025 : yr };
+				const isPM = hr >= 12;
+				this.timeValues = { hour: (hr % 12) || 12, minute: d.getUTCMinutes(), second: d.getUTCSeconds(), isPM };
+			} catch (e) { trace("RTC read error on navigate: " + e + "\n"); }
+		}
 		this.currentScreen = "setDate";
 		this.switchScreen(application);
 	}
@@ -630,9 +696,11 @@ class ApplicationBehavior extends Behavior {
 		if (this.currentScreen === "main") {
 			application.add(new MainScreen({}));
 		} else if (this.currentScreen === "setDate") {
-			application.add(new SetDateScreen({ dateValues: this.dateValues }));
+			this.dateData = { dateValues: this.dateValues };
+			application.add(new SetDateScreen(this.dateData));
 		} else if (this.currentScreen === "setTime") {
-			application.add(new SetTimeScreen({ timeValues: this.timeValues }));
+			this.timeData = { timeValues: this.timeValues };
+			application.add(new SetTimeScreen(this.timeData));
 		}
 	}
 }
@@ -654,89 +722,49 @@ class SetDateScreenBehavior extends Behavior {
 		this.month = this.dateValues.month;
 		this.day = this.dateValues.day;
 		this.year = this.dateValues.year;
-		this.container = container;
 		this.activeField = null;
 	}
 	onDisplaying(container) {
-		// Initialize field values - KeyboardField stores string in its behavior
-		if (container.$) {
-			if (container.$.MONTH_FIELD) {
-				container.$.MONTH_FIELD.behavior.string = String(this.month).padStart(2, "0");
-				container.$.MONTH_FIELD.behavior.onKeyUp(container.$.MONTH_FIELD, "");
-			}
-			if (container.$.DAY_FIELD) {
-				container.$.DAY_FIELD.behavior.string = String(this.day).padStart(2, "0");
-				container.$.DAY_FIELD.behavior.onKeyUp(container.$.DAY_FIELD, "");
-			}
-			if (container.$.YEAR_FIELD) {
-				container.$.YEAR_FIELD.behavior.string = String(this.year).padStart(4, "0");
-				container.$.YEAR_FIELD.behavior.onKeyUp(container.$.YEAR_FIELD, "");
-			}
-			// Add keyboard to slot when screen first displays
-			if (container.$.KEYBOARD && container.$.KEYBOARD.length === 0) {
-				container.$.KEYBOARD.add(HorizontalExpandingKeyboard(this.data, {
-					style: fieldStyle,
-					target: container.$.MONTH_FIELD,
-					doTransition: false,
-					toggleMode: 2  // ALT mode shows numbers: "1234567890"
-				}));
-			}
+		if (this.data.MONTH_FIELD) {
+			this.data.MONTH_FIELD.behavior.string = String(this.month).padStart(2, "0");
+			this.data.MONTH_FIELD.delegate("onKeyUp", "");
 		}
+		if (this.data.DAY_FIELD) {
+			this.data.DAY_FIELD.behavior.string = String(this.day).padStart(2, "0");
+			this.data.DAY_FIELD.delegate("onKeyUp", "");
+		}
+		if (this.data.YEAR_FIELD) {
+			this.data.YEAR_FIELD.behavior.string = String(this.year).padStart(4, "0");
+			this.data.YEAR_FIELD.delegate("onKeyUp", "");
+		}
+		hideAllCursors(this.data);
 	}
 	onKeyboardOK(container, string) {
 		if (this.activeField) {
 			const value = parseInt(string, 10);
 			if (!isNaN(value)) {
-				const anchor = this.activeField.anchor;
-				if (anchor === "MONTH_FIELD") {
+				const f = this.activeField;
+				if (f === this.data.MONTH_FIELD) {
 					this.month = Math.max(1, Math.min(12, value));
-					this.activeField.behavior.string = String(this.month).padStart(2, "0");
-					this.activeField.behavior.onKeyUp(this.activeField, "");
-				} else if (anchor === "DAY_FIELD") {
+					f.behavior.string = String(this.month).padStart(2, "0");
+					f.delegate("onKeyUp", "");
+				} else if (f === this.data.DAY_FIELD) {
 					this.day = Math.max(1, Math.min(31, value));
-					this.activeField.behavior.string = String(this.day).padStart(2, "0");
-					this.activeField.behavior.onKeyUp(this.activeField, "");
-				} else if (anchor === "YEAR_FIELD") {
+					f.behavior.string = String(this.day).padStart(2, "0");
+					f.delegate("onKeyUp", "");
+				} else if (f === this.data.YEAR_FIELD) {
 					this.year = Math.max(2000, Math.min(2099, value));
-					this.activeField.behavior.string = String(this.year).padStart(4, "0");
-					this.activeField.behavior.onKeyUp(this.activeField, "");
+					f.behavior.string = String(this.year).padStart(4, "0");
+					f.delegate("onKeyUp", "");
 				}
 			}
 		}
-		const keyboardContainer = this.container.$?.KEYBOARD;
-		if (keyboardContainer && keyboardContainer.length > 0) {
-			keyboardContainer.remove(keyboardContainer.first);
-		}
+		if (this.data.KEYBOARD) this.data.KEYBOARD.empty();
+		hideAllCursors(this.data);
 		this.activeField = null;
 	}
 	onKeyboardTransitionFinished(container, out) {
-		if (out) {
-			const keyboardContainer = this.container.$?.KEYBOARD;
-			if (keyboardContainer && keyboardContainer.length > 0) {
-				keyboardContainer.remove(keyboardContainer.first);
-			}
-		}
-	}
-	onNavigateToSetTime(container) {
-		// Validate date
-		const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-		const isLeap = (this.year % 4 === 0 && this.year % 100 !== 0) || (this.year % 400 === 0);
-		if (isLeap) daysInMonth[1] = 29;
-		
-		if (this.month < 1 || this.month > 12) {
-			trace("Invalid month\n");
-			return;
-		}
-		if (this.day < 1 || this.day > daysInMonth[this.month - 1]) {
-			trace("Invalid day for month " + this.month + "\n");
-			return;
-		}
-		
-		// Store values in application behavior
-		const app = container.application;
-		if (app && app.Behavior) {
-			app.Behavior.dateValues = { month: this.month, day: this.day, year: this.year };
-		}
+		if (out && this.data.KEYBOARD) this.data.KEYBOARD.empty();
 	}
 }
 
@@ -749,96 +777,50 @@ class SetTimeScreenBehavior extends Behavior {
 		this.minute = this.timeValues.minute;
 		this.second = this.timeValues.second;
 		this.isPM = this.timeValues.isPM;
-		this.container = container;
 		this.activeField = null;
 	}
 	onDisplaying(container) {
-		// Initialize field values - KeyboardField stores string in its behavior
-		if (container.$) {
-			if (container.$.HOUR_FIELD) {
-				container.$.HOUR_FIELD.behavior.string = String(this.hour).padStart(2, "0");
-				container.$.HOUR_FIELD.behavior.onKeyUp(container.$.HOUR_FIELD, "");
-			}
-			if (container.$.MINUTE_FIELD) {
-				container.$.MINUTE_FIELD.behavior.string = String(this.minute).padStart(2, "0");
-				container.$.MINUTE_FIELD.behavior.onKeyUp(container.$.MINUTE_FIELD, "");
-			}
-			if (container.$.SECOND_FIELD) {
-				container.$.SECOND_FIELD.behavior.string = String(this.second).padStart(2, "0");
-				container.$.SECOND_FIELD.behavior.onKeyUp(container.$.SECOND_FIELD, "");
-			}
-			if (container.$.AMPM_LABEL) container.$.AMPM_LABEL.string = this.isPM ? "PM" : "AM";
-			// Add keyboard to slot when screen first displays
-			if (container.$.KEYBOARD && container.$.KEYBOARD.length === 0) {
-				container.$.KEYBOARD.add(HorizontalExpandingKeyboard(this.data, {
-					style: fieldStyle,
-					target: container.$.HOUR_FIELD,
-					doTransition: false,
-					toggleMode: 2  // ALT mode shows numbers: "1234567890"
-				}));
-			}
+		if (this.data.HOUR_FIELD) {
+			this.data.HOUR_FIELD.behavior.string = String(this.hour).padStart(2, "0");
+			this.data.HOUR_FIELD.delegate("onKeyUp", "");
 		}
+		if (this.data.MINUTE_FIELD) {
+			this.data.MINUTE_FIELD.behavior.string = String(this.minute).padStart(2, "0");
+			this.data.MINUTE_FIELD.delegate("onKeyUp", "");
+		}
+		if (this.data.SECOND_FIELD) {
+			this.data.SECOND_FIELD.behavior.string = String(this.second).padStart(2, "0");
+			this.data.SECOND_FIELD.delegate("onKeyUp", "");
+		}
+		if (this.data.AMPM_LABEL) this.data.AMPM_LABEL.string = this.isPM ? "PM" : "AM";
+		hideAllCursors(this.data);
 	}
 	onKeyboardOK(container, string) {
 		if (this.activeField) {
 			const value = parseInt(string, 10);
 			if (!isNaN(value)) {
-				const anchor = this.activeField.anchor;
-				if (anchor === "HOUR_FIELD") {
+				const f = this.activeField;
+				if (f === this.data.HOUR_FIELD) {
 					this.hour = Math.max(1, Math.min(12, value));
-					this.activeField.behavior.string = String(this.hour).padStart(2, "0");
-					this.activeField.behavior.onKeyUp(this.activeField, "");
-				} else if (anchor === "MINUTE_FIELD") {
+					f.behavior.string = String(this.hour).padStart(2, "0");
+					f.delegate("onKeyUp", "");
+				} else if (f === this.data.MINUTE_FIELD) {
 					this.minute = Math.max(0, Math.min(59, value));
-					this.activeField.behavior.string = String(this.minute).padStart(2, "0");
-					this.activeField.behavior.onKeyUp(this.activeField, "");
-				} else if (anchor === "SECOND_FIELD") {
+					f.behavior.string = String(this.minute).padStart(2, "0");
+					f.delegate("onKeyUp", "");
+				} else if (f === this.data.SECOND_FIELD) {
 					this.second = Math.max(0, Math.min(59, value));
-					this.activeField.behavior.string = String(this.second).padStart(2, "0");
-					this.activeField.behavior.onKeyUp(this.activeField, "");
+					f.behavior.string = String(this.second).padStart(2, "0");
+					f.delegate("onKeyUp", "");
 				}
 			}
 		}
-		const keyboardContainer = this.container.$?.KEYBOARD;
-		if (keyboardContainer && keyboardContainer.length > 0) {
-			keyboardContainer.remove(keyboardContainer.first);
-		}
+		if (this.data.KEYBOARD) this.data.KEYBOARD.empty();
+		hideAllCursors(this.data);
 		this.activeField = null;
 	}
 	onKeyboardTransitionFinished(container, out) {
-		if (out) {
-			const keyboardContainer = this.container.$?.KEYBOARD;
-			if (keyboardContainer && keyboardContainer.length > 0) {
-				keyboardContainer.remove(keyboardContainer.first);
-			}
-		}
-	}
-	onToggleAMPM(container) {
-		this.isPM = !this.isPM;
-		if (container.$ && container.$.AMPM_LABEL) {
-			container.$.AMPM_LABEL.string = this.isPM ? "PM" : "AM";
-		}
-	}
-	onSaveDateTime(container) {
-		// Validate time
-		if (this.hour < 1 || this.hour > 12) {
-			trace("Invalid hour (must be 1-12)\n");
-			return;
-		}
-		if (this.minute < 0 || this.minute > 59) {
-			trace("Invalid minute\n");
-			return;
-		}
-		if (this.second < 0 || this.second > 59) {
-			trace("Invalid second\n");
-			return;
-		}
-		
-		// Store values
-		const app = container.application;
-		const behavior = app.Behavior;
-		behavior.timeValues = { hour: this.hour, minute: this.minute, second: this.second, isPM: this.isPM };
-		app.distribute("onSaveDateTime");
+		if (out && this.data.KEYBOARD) this.data.KEYBOARD.empty();
 	}
 }
 
@@ -992,7 +974,7 @@ let SetDateScreen = Container.template($ => ({
 							top: 10, height: 28, left: 0, right: 0,
 							contents: [
 								Label($, { left: 0, top: 0, bottom: 0, width: 40, style: valueStyle, string: "MM:" }),
-								Container($, { left: 40, width: 50, height: 28, skin: whiteSkin, contents: [
+								Container($, { left: 40, width: 50, height: 28, skin: whiteSkin, active: true, Behavior: FieldTapBehavior, contents: [
 									KeyboardField($, { anchor: "MONTH_FIELD", left: 4, right: 4, top: 0, bottom: 0, style: fieldStyle, string: "01" })
 								]}),
 								Label($, { left: 95, top: 0, bottom: 0, width: 30, style: buttonStyle, skin: buttonSkin, active: true, string: "+", Behavior: MonthIncButtonBehavior }),
@@ -1004,7 +986,7 @@ let SetDateScreen = Container.template($ => ({
 							top: 10, height: 28, left: 0, right: 0,
 							contents: [
 								Label($, { left: 0, top: 0, bottom: 0, width: 40, style: valueStyle, string: "DD:" }),
-								Container($, { left: 40, width: 50, height: 28, skin: whiteSkin, contents: [
+								Container($, { left: 40, width: 50, height: 28, skin: whiteSkin, active: true, Behavior: FieldTapBehavior, contents: [
 									KeyboardField($, { anchor: "DAY_FIELD", left: 4, right: 4, top: 0, bottom: 0, style: fieldStyle, string: "01" })
 								]}),
 								Label($, { left: 95, top: 0, bottom: 0, width: 30, style: buttonStyle, skin: buttonSkin, active: true, string: "+", Behavior: DayIncButtonBehavior }),
@@ -1016,7 +998,7 @@ let SetDateScreen = Container.template($ => ({
 							top: 10, height: 28, left: 0, right: 0,
 							contents: [
 								Label($, { left: 0, top: 0, bottom: 0, width: 40, style: valueStyle, string: "YYYY:" }),
-								Container($, { left: 40, width: 50, height: 28, skin: whiteSkin, contents: [
+								Container($, { left: 40, width: 50, height: 28, skin: whiteSkin, active: true, Behavior: FieldTapBehavior, contents: [
 									KeyboardField($, { anchor: "YEAR_FIELD", left: 4, right: 4, top: 0, bottom: 0, style: fieldStyle, string: "2025" })
 								]}),
 								Label($, { left: 95, top: 0, bottom: 0, width: 30, style: buttonStyle, skin: buttonSkin, active: true, string: "+", Behavior: YearIncButtonBehavior }),
@@ -1079,7 +1061,7 @@ let SetTimeScreen = Container.template($ => ({
 							top: 10, height: 28, left: 0, right: 0,
 							contents: [
 								Label($, { left: 0, top: 0, bottom: 0, width: 40, style: valueStyle, string: "HH:" }),
-								Container($, { left: 40, width: 50, height: 28, skin: whiteSkin, contents: [
+								Container($, { left: 40, width: 50, height: 28, skin: whiteSkin, active: true, Behavior: FieldTapBehavior, contents: [
 									KeyboardField($, { anchor: "HOUR_FIELD", left: 4, right: 4, top: 0, bottom: 0, style: fieldStyle, string: "12" })
 								]}),
 								Label($, { left: 95, top: 0, bottom: 0, width: 30, style: buttonStyle, skin: buttonSkin, active: true, string: "+", Behavior: HourIncButtonBehavior }),
@@ -1091,7 +1073,7 @@ let SetTimeScreen = Container.template($ => ({
 							top: 10, height: 28, left: 0, right: 0,
 							contents: [
 								Label($, { left: 0, top: 0, bottom: 0, width: 40, style: valueStyle, string: "MM:" }),
-								Container($, { left: 40, width: 50, height: 28, skin: whiteSkin, contents: [
+								Container($, { left: 40, width: 50, height: 28, skin: whiteSkin, active: true, Behavior: FieldTapBehavior, contents: [
 									KeyboardField($, { anchor: "MINUTE_FIELD", left: 4, right: 4, top: 0, bottom: 0, style: fieldStyle, string: "00" })
 								]}),
 								Label($, { left: 95, top: 0, bottom: 0, width: 30, style: buttonStyle, skin: buttonSkin, active: true, string: "+", Behavior: MinuteIncButtonBehavior }),
@@ -1103,7 +1085,7 @@ let SetTimeScreen = Container.template($ => ({
 							top: 10, height: 28, left: 0, right: 0,
 							contents: [
 								Label($, { left: 0, top: 0, bottom: 0, width: 40, style: valueStyle, string: "SS:" }),
-								Container($, { left: 40, width: 50, height: 28, skin: whiteSkin, contents: [
+								Container($, { left: 40, width: 50, height: 28, skin: whiteSkin, active: true, Behavior: FieldTapBehavior, contents: [
 									KeyboardField($, { anchor: "SECOND_FIELD", left: 4, right: 4, top: 0, bottom: 0, style: fieldStyle, string: "00" })
 								]}),
 								Label($, { left: 95, top: 0, bottom: 0, width: 30, style: buttonStyle, skin: buttonSkin, active: true, string: "+", Behavior: SecondIncButtonBehavior }),
