@@ -231,3 +231,113 @@ For detailed instructions on integrating native C/C++ drivers, see **NATIVE_BRID
 - Complete BMP390 integration as a working example
 
 See **COPILOT.md** for AI assistant-specific instructions and project context.
+
+## ChronoDot UI: Key Lessons Learned
+
+During development of the ChronoDot date/time setting UI, several Piu framework patterns were learned that are critical for interactive UIs:
+
+### Piu Behavior Instance Access: `.behavior` vs `Behavior`
+
+In Piu, the behavior instance attached to a content object is accessed via **lowercase `.behavior`**. Uppercase `Behavior` is only the template dictionary key. Using `screen.Behavior` (uppercase) returns `undefined`, causing all interactive handlers to silently no-op.
+
+**Correct:**
+```javascript
+const sb = screen.behavior;  // or screen?.behavior
+```
+
+**Incorrect:**
+```javascript
+const sb = screen.Behavior;  // undefined
+```
+
+This bug affected all interactive elements (+/- buttons, Next, Save, AM/PM toggle, field tap) because they all fetched the screen behavior via uppercase `Behavior`.
+
+### KeyboardField Behavior Override Pitfall
+
+The `KeyboardField` template (from `expanding-keyboard/common/keyboard.js`) ships with a **built-in `Behavior: KeyboardFieldBehavior`** that handles text rendering, cursor blinking, and `onKeyUp` event handling. Overriding this behavior with a custom behavior on the field itself destroys all of that functionality.
+
+**Incorrect (destroys built-in behavior):**
+```javascript
+KeyboardField($, { anchor: "MONTH_FIELD", Behavior: FieldTapBehavior, ... })
+```
+
+**Correct (preserve built-in behavior, move custom behavior to wrapper):**
+```javascript
+Container($, { active: true, Behavior: FieldTapBehavior, contents: [
+    KeyboardField($, { anchor: "MONTH_FIELD", ... })
+]})
+```
+
+The wrapper container's `first` child is the `KeyboardField`, so the custom behavior can still access it.
+
+### Piu Event Delegation: `delegate()` vs Direct Method Call
+
+Piu's event system uses `delegate()` to route events through the behavior chain. Calling a behavior method directly (e.g., `behavior.onKeyUp(field, "")`) bypasses this routing and may not work as expected. Use `delegate()` instead.
+
+**Correct:**
+```javascript
+field.delegate("onKeyUp", "");
+```
+
+**Incorrect:**
+```javascript
+field.behavior.onKeyUp(field, "");
+```
+
+### RTC Century Bit Handling
+
+The DS3231/ChronoDot RTC uses a century bit in the month register to distinguish years 1900–1999 from 2000–2099. The driver correctly sets this bit when saving dates ≥ 2000, but if the RTC was never initialized with a valid date, the century bit may be unset, causing years like 26 to be read as 1926.
+
+**Fix:** Pre-read the RTC time when navigating to the date screen and initialize the date values appropriately. The driver's `_setDate` method handles the century bit correctly on save.
+
+### Avoid `distribute()` Name Collisions
+
+Using `app.distribute("methodName")` with a method name that also exists on another behavior in the distribute chain can cause re-entrancy issues or double-calls. Instead, call the target behavior's method directly after saving any necessary state.
+
+**Incorrect (collision risk):**
+```javascript
+app.distribute("onNavigateToSetTime");
+```
+
+**Correct (direct call):**
+```javascript
+const appBeh = app.behavior;
+appBeh.dateValues = { month: sb.month, day: sb.day, year: sb.year };
+appBeh.onNavigateToSetTime(app);
+```
+
+### Keyboard Numeric Mode and Dismissal
+
+The `HorizontalExpandingKeyboard` supports multiple modes via `toggleMode` (0=lowercase, 1=SHIFT, 2=ALT for digits+symbols). To open in numeric mode, set `kbd.behavior.toggleMode = 2` before adding the keyboard to the container (key rows read this value on display).
+
+To dismiss the keyboard by tapping outside its area, add a transparent scrim overlay above the keyboard with a behavior that calls a dismiss helper on tap. The scrim should cover the area above the keyboard (e.g., `bottom: 160` when the keyboard is 160px tall at the bottom).
+
+**Example:**
+```javascript
+// Open keyboard in numeric mode
+const kbd = HorizontalExpandingKeyboard(sb.data, { style, target, doTransition });
+kbd.behavior.toggleMode = 2;  // ALT mode (digits + symbols)
+sb.data.KEYBOARD.add(kbd);
+
+// Add scrim for tap-outside-to-dismiss
+sb.scrim = new Container(null, { top: 0, left: 0, right: 0, bottom: 160, active: true, Behavior: KeyboardScrimBehavior });
+screen.add(sb.scrim);
+```
+
+### Cursor Management for KeyboardField
+
+Each `KeyboardField` has a cursor (its last child) that blinks via its own timer. By default, all fields show cursors, which is confusing. Manage cursors by:
+
+- Hiding all cursors initially in `onDisplaying`
+- Showing only the active field's cursor on tap
+- Hiding all cursors when the keyboard closes (on OK or dismiss)
+
+**Helper functions:**
+```javascript
+function hideFieldCursor(field) {
+    if (field && field.last) { field.last.stop(); field.last.visible = false; }
+}
+function showFieldCursor(field) {
+    if (field && field.last) { field.last.visible = true; field.last.start(); }
+}
+```
